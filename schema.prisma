@@ -1,0 +1,72 @@
+// datasource db defines the database connection settings.
+// It is configured for PostgreSQL and uses an environment variable for the connection URL.
+// The 'extensions' feature enables the use of PostgreSQL-specific data types.
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+}
+
+// generator db configures Prisma Client settings.
+// It is set up to use Prisma Client Python with asyncio interface and specific features.
+generator db {
+  provider             = "prisma-client-py"
+  interface            = "asyncio"
+  recursive_type_depth = 5
+  previewFeatures      = ["postgresqlExtensions"]
+}
+
+enum SubscriptionPlan {
+  FREE
+  STANDARD
+  PREMIUM
+}
+
+model User {
+  id            String         @id @default(dbgenerated("gen_random_uuid()"))
+  email         String         @unique
+  password      String
+  role          Role           @default(USER)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  apiKey        String         @unique
+  EchoLogs      EchoLog[]
+  Subscriptions Subscription[]
+  RequestLog    RequestLog[]
+}
+
+model EchoLog {
+  id         String   @id @default(dbgenerated("gen_random_uuid()"))
+  message    String
+  echoedBack String
+  createdAt  DateTime @default(now())
+  userId     String
+  User       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Subscription {
+  id        String           @id @default(dbgenerated("gen_random_uuid()"))
+  plan      SubscriptionPlan @default(FREE)
+  startDate DateTime         @default(now())
+  endDate   DateTime
+  isActive  Boolean          @default(true)
+  userId    String
+  User      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model RequestLog {
+  id           String   @id @default(dbgenerated("gen_random_uuid()"))
+  endpoint     String
+  requestData  Json
+  responseData Json
+  responseTime Int // Response time in milliseconds
+  createdAt    DateTime @default(now())
+  userId       String
+  User         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum Role {
+  ADMIN
+  USER
+  PREMIUMUSER
+}
+
